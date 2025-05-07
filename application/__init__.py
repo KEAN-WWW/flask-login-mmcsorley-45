@@ -10,34 +10,34 @@ from flask_wtf import CSRFProtect
 
 from application.database import db,User
 import config
-from application.bp.homepage import bp_homepage
+from application.bp.homepage import homepage
 from application.bp.authentication import authentication
+
 
 migrate = Migrate()
 csrf = CSRFProtect()
 login_manager = LoginManager()
+bootstrap = Bootstrap5()
 
 def init_app():
-    """Initialize the core application."""
-    app = Flask(__name__, instance_relative_config=False)
-    app.config.from_object(config.Config())
-    csrf.init_app(app)
-    bootstrap = Bootstrap5(app)
+    app = Flask(__name__)
+    app.config['SECRET_KEY'] = 'your_secret_key'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///your_test.db'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    login_manager.login_view = "authentication.login"
-    login_manager.init_app(app)
-
-    # Initialize Plugins
     db.init_app(app)
-    migrate.init_app(app, db)
 
-    with app.app_context():
+    login_manager.init_app(app)
+    login_manager.login_view = 'authentication.login'
 
-        blueprints = [bp_homepage, authentication]
-        # Register Blueprints
-        for blueprint in blueprints:
-            app.register_blueprint(blueprint)
-        return app
+    from application.bp.authentication import authentication
+    app.register_blueprint(authentication)
+
+    # Optional: homepage blueprint if needed by test_user_logout
+    from application.bp.homepage import homepage
+    app.register_blueprint(homepage)
+    bootstrap.init_app(app)
+    return app
 
 @login_manager.user_loader
 def user_loader(user_id):
